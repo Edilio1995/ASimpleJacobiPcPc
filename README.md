@@ -1,3 +1,4 @@
+
 # Progetto    : "A simple Jacobi iteration"
 
 ## Installazione 
@@ -54,6 +55,8 @@ for (int i = 1; i < p; i++) {
 
 ##### Calcolo parallelo dell'iterazione di Jacobi
 Ogni processore nella sua sotto matrice ha bisogno di conoscere i boundary immediatamente successivi e precedenti. Ovvero l'ultima riga del carico di lavoro del processo precedente e la prima riga del carico di lavoro del processo successivo. Visto che abbiamo considerato un'approssimazione del problema di Laplace significa che possiamo considerare la matrice non come un toroide. Per cui il processo 0 non ha bisogno di ricevere la riga superiore ed il processo di rank p-1 non ha bisogno di ricevere la riga inferiore (poiché sono le locazione di boundary read-only e mai modificate).
+
+
 ```
 if (my_rank < p-1){
 		    MPI_Send(&x[(end-1)*nc], nc, MPI_DOUBLE, my_rank + 1, 0,
@@ -75,6 +78,7 @@ if (my_rank < p-1){
 
 
 I primi if sono necessari appunto per il trasferimento delle righe di boundary (non di confine appunto). La scelta implementativa siffatta è stata pensata per evitare il trasferimento o la gather dell'intera matrice ad ogni iterazione per non saturare la banda. 
+
 ```
 for (i = start; i < end; i++) {
 			for (j = 1; j < col; j++) {
@@ -87,19 +91,7 @@ for (i = start; i < end; i++) {
 ##### Reduce del risultato
 La **MPI_Allreduce** è stata sfruttata poichè è necessario che non solo il processo 0 conosca il risultato della somma delle differenze (per il calcolo della convergenza), bensì ogni processore deve essere notificato del valore cumulato di diff per valutare se uscire dall'iterazione nel caso l'errore sia diventato minore di 1.0e-2.
 
-````
-MPI_Allreduce(&diffnorm, &dif, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-dif = sqrt( dif );
-		if (my_rank == 0) {
-			printf("DIF [%f] all'iterazione [%d] \n", dif, iter);
-		}
-		if(dif < 1.0e-2){
-						t2 = MPI_Wtime(); 
-						flag = 1;
-				}
-		`iter++; 
-	}
-```
+
 
 ##### MPI_Wtime:
 La funzione è stata usata per calcolare il tempo di esecuzione della parte interessata, ovvero del calcolo di Laplace. Unicamente il processo di rank 0 si occuperà di stampare il suo tempo di fine.
@@ -115,8 +107,8 @@ Il test di strong scaling permette di trovare un punto che consenta di completar
 
 I risultati dello strong scaling sono riportati nella seguente tabella.
 
-| Core MPI | Tempo (ms)|  Percentuale   |
-|--------  |--------|--------|
+| Core MPI | Tempo (ms) |  Percentuale   |
+|--------|--------|--------|
 |1        |    138346   |	//	|
 |2        |    69407    |	99,6%  |
 |4        |    35122    |	98,5%	   |
